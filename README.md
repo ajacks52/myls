@@ -3,6 +3,12 @@ CS 481 Lab 5
 
 Lists the contents of directories and files
 
+## Make
+
+To make myls download the tar file and untar then in the root directory of the project open a command promt type "make" 
+
+## Run
+
 To run type "./myls [-cd:lfhr] [file ...]" (-d must have additonal arg the block size)
 
 ## Supported Options
