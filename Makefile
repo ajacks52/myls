@@ -2,7 +2,7 @@ EXECUTABLES = myls
 
 CC = gcc
 LIBS = libfdr.a
-CFLAGS = -O0 -g -w -std=gnu99
+CFLAGS = -O2 -w -std=gnu99
 
 LIBFDROBJS = dllist.o jval.o
 
@@ -20,4 +20,4 @@ libfdr.a: $(LIBFDROBJS)
 	ranlib libfdr.a
 
 clean:
-	rm -f core *.o $(EXECUTABLES)
+	rm -f core *.o $(EXECUTABLES) *.a
