@@ -6,7 +6,7 @@
 
 #include "header.h"
 
-bool DEBUG = true;
+bool DEBUG = false;
 flags_t *flags;
 
 int main(int argc, char **argv) {
@@ -22,14 +22,16 @@ int main(int argc, char **argv) {
 
   if (DEBUG) {
     printf( "{ ");
-    dll_traverse(tmp, flags->file_names_list)
-    {
+    dll_traverse(tmp, flags->file_names_list) {
       file_name_t *file_name_struct = (file_name_t *) jval_v(dll_val(tmp));
       char *file_name = strdup(file_name_struct->file_name);
       printf( ANSI_COLOR_RED "%s #%d, " ANSI_COLOR_RESET,file_name, file_name_struct->times );
     }
     printf("}\n\n" );
   }
+
+  // gather_info ();
+  // run_ls ();
 
   // scrub files make sure they all exist.
   dll_traverse(tmp, flags->file_names_list) {
@@ -49,14 +51,12 @@ int main(int argc, char **argv) {
   }
 
   // if list is empty and we delete at least one bad file exit the program.
-  if (dll_empty(flags->file_names_list) && list_was_full_of_crap)
-  {
+  if (dll_empty(flags->file_names_list) && list_was_full_of_crap) {
     exit(EXIT_FAILURE);
   }
 
   // list is empty and was not full of crap
-  if (dll_empty(flags->file_names_list) && !list_was_full_of_crap)
-  {
+  if (dll_empty(flags->file_names_list) && !list_was_full_of_crap) {
     print_ls(".");
   }
 
@@ -80,8 +80,6 @@ int main(int argc, char **argv) {
           lstat(temp_name,&file_stat);
         }
 
-        /* check if the -d flag is on if so print disk usage */
-        if (flags->d) print_num_blocks(&file_stat);
         /* check if the -l flag is set if so print in formatted form */
         if (flags->l) print_formatted (&file_stat);
         /* if the file name */
@@ -95,6 +93,13 @@ int main(int argc, char **argv) {
 
   free(flags);
 }
+
+
+// void traverse (int print) {
+//
+//
+// }
+
 
 /**
 * Prints an entire directory
@@ -111,53 +116,55 @@ void print_ls(const char *name)
 
   dir = opendir(name);
   if (!(dir))
-  return;
+    return;
   if (!(file_dir = readdir(dir)))
-  return;
+    return;
 
+  if (flags->r && strcmp(name, "..")){
+    printf("%s\n", name);
+  }
 
   do {
     char *file_name = file_dir->d_name;
-    lstat(file_dir->d_name,&file_stat);
+
+    char *temp_file_name;
+    asprintf(&temp_file_name,"%s/%s", name, file_name);
+
+    if(lstat(temp_file_name, &file_stat) < 0) {
+        fprintf(stderr, "stat failed\n" );
+        return;
+    }
 
     if (flags->r) {
       if (file_dir->d_type == DT_DIR && strcmp(file_name, ".") && strcmp(file_name, "..")) {
         // recursive is turned on add all dirs to Dllist
-        char *recursive_dir_name = strdup(file_name);
-        dll_append(recursive_file_list, new_jval_v(recursive_dir_name));
+        dll_append(recursive_file_list, new_jval_v(temp_file_name));
       }
     }
 
-    char *temp_name = get_real_name_if_necessary(&file_stat, file_name);
-    if (temp_name != NULL) {
-      file_name = temp_name;
-      lstat(temp_name,&file_stat);
-    }
-    /* check if the -d flag is on if so print disk usage */
-    if (flags->d) print_num_blocks(&file_stat);
     /* check if the -l flag is set if so print in formatted form */
     if (flags->l) print_formatted (&file_stat);
     /* if the file name */
     print_name_with_classification(&file_stat, file_name);
   } while (file_dir = readdir(dir));
+
   closedir(dir);
 
-  // if (DEBUG && !dll_empty(recursive_file_list)) {
-  //   printf( "{ ");
-  //   dll_traverse(tmp, recursive_file_list)
-  //   {
-  //     char *dir_name = strdup((char *) jval_v(dll_val(tmp)));
-  //     printf( ANSI_COLOR_RED "%s, " ANSI_COLOR_RESET, dir_name);
-  //   }
-  //   printf("}\n\n" );
-  // }
+  if (DEBUG && !dll_empty(recursive_file_list)) {
+    printf( "{ ");
+    dll_traverse(tmp, recursive_file_list)
+    {
+      char *dir_name = strdup((char *) jval_v(dll_val(tmp)));
+      printf( ANSI_COLOR_RED "%s, " ANSI_COLOR_RESET, dir_name);
+    }
+    printf("}\n\n" );
+  }
 
   if (flags->r && !dll_empty(recursive_file_list)) {
     dll_traverse(tmp, recursive_file_list)
     {
+      printf("\n");
       char *dir_name = strdup((char *) jval_v(dll_val(tmp)));
-      char *temp = "..";
-      asprintf(&temp,"%s/%s",*temp, dir_name);
       print_ls(dir_name);
     }
   }
@@ -216,19 +223,16 @@ void print_formatted (struct stat *file_stat) {
   //TODO fix date issue, I think when I get recurssion to work the date issue will
   // go away I think that stat only knows about "." the current dir nothing else
 
+
   strftime(cyear, 10, "%Y", localtime(&t));
   strftime(fyear, 10, "%Y", localtime(&(file_stat->st_mtime)));
 
-  // printf("ft: %s, ct: %s\n", fyear, cyear);
+  if (!strcmp(cyear, fyear))
+    strftime(date_buffer, 20, "%b %d %H:%M", localtime(&(file_stat->st_mtime)));
+  else
+    strftime(date_buffer, 20, "%b %d %Y", localtime(&(file_stat->st_mtime)));
 
-
-  // if (!strcmp(cyear, fyear))
-  strftime(date_buffer, 20, "%b %d %H:%M", localtime(&(file_stat->st_mtime)));
-  // else
-  strftime(date_buffer, 20, "%b %d %Y", localtime(&(file_stat->st_mtime)));
-
-
-  printf( "%d ", file_stat->st_ino);
+  printf( "%8d ", file_stat->st_ino);
   printf( (S_ISDIR(file_stat->st_mode)) ? "d" : "-");
   printf( (file_stat->st_mode & S_IRUSR) ? "r" : "-");
   printf( (file_stat->st_mode & S_IWUSR) ? "w" : "-");
@@ -239,10 +243,19 @@ void print_formatted (struct stat *file_stat) {
   printf( (file_stat->st_mode & S_IROTH) ? "r" : "-");
   printf( (file_stat->st_mode & S_IWOTH) ? "w" : "-");
   printf( (file_stat->st_mode & S_IXOTH) ? "x" : "-");
-  printf(" %s", pwd->pw_name);
-  printf(" %s", grp->gr_name);
-  if (flags->h) printf("%7s", bytesToReadable (file_stat->st_size));
-  else printf("%8d", file_stat->st_size);
+  printf(" %-8s", pwd->pw_name);
+  printf(" %-8s", grp->gr_name);
+
+  if (flags->d) {
+    long num_bits = (file_stat->st_size / flags->d_arg  + ((file_stat->st_size % flags->d_arg) ? 1 : 0));
+    if (flags->h) printf("%7s", bytesToReadable (num_bits));
+    else printf("%7d ", num_bits);
+
+  }
+  else {
+    if (flags->h) printf("%7s", bytesToReadable (file_stat->st_size));
+    else printf("%8d", file_stat->st_size);
+  }
 
   printf(" %s ", date_buffer);
 }
@@ -291,8 +304,7 @@ int parse_input_opt (int argc, char **argv) {
           if (optarg) {
             int j = 0;
             while (j < strlen(optarg)) {
-              if (optarg[j] <= '0' && optarg[j] >= '9')
-              {
+              if (optarg[j] <= '0' && optarg[j] >= '9') {
                 print_usage();
                 exit(EXIT_FAILURE);
               }
@@ -333,8 +345,7 @@ int parse_input_opt (int argc, char **argv) {
       char *fname = malloc(strlen(argv[optind])+1);
       strcpy(fname, argv[optind]);
 
-      dll_traverse(tmp, flags->file_names_list)
-      {
+      dll_traverse(tmp, flags->file_names_list) {
         file_name_t *file_name_struct = (file_name_t *) jval_v(dll_val(tmp));
         if (!strcmp(argv[optind], file_name_struct->file_name)) {
           already_in_list = 1;
@@ -356,13 +367,6 @@ int parse_input_opt (int argc, char **argv) {
   return 0;
 }
 
-void print_num_blocks (struct stat *file_stat) {
-
-  if (flags->h)
-  printf("%3s ", bytesToReadable (file_stat->st_blocks * flags->d_arg));
-  else
-  printf("%7d ", file_stat->st_blocks * flags->d_arg);
-}
 
 char * bytesToReadable (long bytes) {
 
