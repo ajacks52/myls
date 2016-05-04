@@ -9,12 +9,12 @@
 bool DEBUG = false;
 flags_t *flags;
 
+int LIST_WAS_FULL_OF_CRAP = 0;
+
 int main(int argc, char **argv) {
 
   Dllist tmp;
-  struct stat file_stat;
   char *printed_file_name;
-  int list_was_full_of_crap = 0;
 
   flags = talloc(flags_t, 1);
   /* set the appropriate flags in the flags struct and adds file names to Dllist */
@@ -30,9 +30,6 @@ int main(int argc, char **argv) {
     printf("}\n\n" );
   }
 
-  // gather_info ();
-  // run_ls ();
-
   // scrub files make sure they all exist.
   dll_traverse(tmp, flags->file_names_list) {
     file_name_t *file_name_struct = (file_name_t *) jval_v(dll_val(tmp));
@@ -45,34 +42,45 @@ int main(int argc, char **argv) {
         fprintf(stderr, "myls: %s: No such file or directory\n", file_name);
         if (i == 0)
         dll_delete_node(tmp);
-        list_was_full_of_crap = 1;
+        LIST_WAS_FULL_OF_CRAP = 1;
       }
     }
   }
 
   // if list is empty and we delete at least one bad file exit the program.
-  if (dll_empty(flags->file_names_list) && list_was_full_of_crap) {
+  if (dll_empty(flags->file_names_list) && LIST_WAS_FULL_OF_CRAP) {
     exit(EXIT_FAILURE);
   }
 
+  // traverse and print ls
+  traverse ();
+
+  free(flags);
+}
+
+
+void traverse () {
+
+  Dllist tmp;
+  struct stat file_stat;
+
   // list is empty and was not full of crap
-  if (dll_empty(flags->file_names_list) && !list_was_full_of_crap) {
+  if (dll_empty(flags->file_names_list) && !LIST_WAS_FULL_OF_CRAP) {
     print_ls(".");
   }
 
-  // loop over all the files in the list file_name_struct->times times and run then through print_ls()
+  // loop over all the files in the list file_name_struct->times times
   int file_index = 0;
   dll_traverse(tmp, flags->file_names_list) {
     file_name_t *file_name_struct = (file_name_t *) jval_v(dll_val(tmp));
     char *file_name = strdup(file_name_struct->file_name);
 
     for (int i = 0; i < file_name_struct->times; i++) {
-      if (file_index > 0 || i > 0)
-      printf("\n");
 
       lstat(file_name,&file_stat);
       /* check if name is a file or a dir */
       if (!S_ISDIR(file_stat.st_mode)) {
+
         /* not a dir so it must be a file or symlink */
         char *temp_name = get_real_name_if_necessary(&file_stat, file_name);
         if (temp_name != NULL) {
@@ -84,21 +92,32 @@ int main(int argc, char **argv) {
         if (flags->l) print_formatted (&file_stat);
         /* if the file name */
         print_name_with_classification(&file_stat, file_name);
+        printf("\n");
       }
-
-      print_ls(file_name);
     }
     file_index++;
   }
 
-  free(flags);
+  // loop over all the dirs in the list file_name_struct->times times
+  file_index = 0;
+  dll_traverse(tmp, flags->file_names_list) {
+    file_name_t *file_name_struct = (file_name_t *) jval_v(dll_val(tmp));
+    char *file_name = strdup(file_name_struct->file_name);
+
+    for (int i = 0; i < file_name_struct->times; i++) {
+
+      lstat(file_name,&file_stat);
+      /* check if name is a file or a dir */
+      if (S_ISDIR(file_stat.st_mode)) {
+        /* it's a dir so ls it */
+        print_ls(file_name);
+        printf("\n");
+      }
+    }
+    file_index++;
+  }
+
 }
-
-
-// void traverse (int print) {
-//
-//
-// }
 
 
 /**
@@ -116,9 +135,9 @@ void print_ls(const char *name)
 
   dir = opendir(name);
   if (!(dir))
-    return;
+  return;
   if (!(file_dir = readdir(dir)))
-    return;
+  return;
 
   if (flags->r && strcmp(name, "..")){
     printf("%s\n", name);
@@ -131,8 +150,8 @@ void print_ls(const char *name)
     asprintf(&temp_file_name,"%s/%s", name, file_name);
 
     if(lstat(temp_file_name, &file_stat) < 0) {
-        fprintf(stderr, "stat failed\n" );
-        return;
+      fprintf(stderr, "stat failed\n" );
+      return;
     }
 
     if (flags->r) {
@@ -146,6 +165,7 @@ void print_ls(const char *name)
     if (flags->l) print_formatted (&file_stat);
     /* if the file name */
     print_name_with_classification(&file_stat, file_name);
+
   } while (file_dir = readdir(dir));
 
   closedir(dir);
@@ -228,9 +248,9 @@ void print_formatted (struct stat *file_stat) {
   strftime(fyear, 10, "%Y", localtime(&(file_stat->st_mtime)));
 
   if (!strcmp(cyear, fyear))
-    strftime(date_buffer, 20, "%b %d %H:%M", localtime(&(file_stat->st_mtime)));
+  strftime(date_buffer, 20, "%b %d %H:%M", localtime(&(file_stat->st_mtime)));
   else
-    strftime(date_buffer, 20, "%b %d %Y", localtime(&(file_stat->st_mtime)));
+  strftime(date_buffer, 20, "%b %d %Y", localtime(&(file_stat->st_mtime)));
 
   printf( "%8d ", file_stat->st_ino);
   printf( (S_ISDIR(file_stat->st_mode)) ? "d" : "-");
@@ -244,7 +264,7 @@ void print_formatted (struct stat *file_stat) {
   printf( (file_stat->st_mode & S_IWOTH) ? "w" : "-");
   printf( (file_stat->st_mode & S_IXOTH) ? "x" : "-");
   printf(" %-8s", pwd->pw_name);
-  printf(" %-8s", grp->gr_name);
+  printf(" %s", grp->gr_name);
 
   if (flags->d) {
     long num_bits = (file_stat->st_size / flags->d_arg  + ((file_stat->st_size % flags->d_arg) ? 1 : 0));

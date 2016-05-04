@@ -46,6 +46,7 @@ typedef struct {
 int parse_input_opt (int argc, char **argv);
 void print_usage();
 void print_ls(const char *name);
+void traverse ();
 void print_name_with_classification (struct stat *file_stat, char *old_name);
 void print_formatted (struct stat *file_stat);
 char * bytesToReadable (long bytes);
