@@ -153,7 +153,6 @@ void print_ls(const char *name)
       fprintf(stderr, "stat failed\n" );
       return;
     }
-
     if (flags->r) {
       if (file_dir->d_type == DT_DIR && strcmp(file_name, ".") && strcmp(file_name, "..")) {
         // recursive is turned on add all dirs to Dllist
