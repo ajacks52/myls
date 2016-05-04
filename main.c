@@ -153,6 +153,7 @@ void print_ls(const char *name)
       fprintf(stderr, "stat failed\n" );
       return;
     }
+
     if (flags->r) {
       if (file_dir->d_type == DT_DIR && strcmp(file_name, ".") && strcmp(file_name, "..")) {
         // recursive is turned on add all dirs to Dllist
@@ -266,7 +267,7 @@ void print_formatted (struct stat *file_stat) {
   printf(" %s", grp->gr_name);
 
   if (flags->d) {
-    long num_bits = (file_stat->st_size / flags->d_arg  + ((file_stat->st_size % flags->d_arg) ? 1 : 0));
+    long num_bits = (file_stat->st_size / flags->d_arg  + ((file_stat->st_size % flags->d_arg) ? 1 : 0)) * flags->d_arg;
     if (flags->h) printf("%7s", bytesToReadable (num_bits));
     else printf("%7d ", num_bits);
 
@@ -323,7 +324,7 @@ int parse_input_opt (int argc, char **argv) {
           if (optarg) {
             int j = 0;
             while (j < strlen(optarg)) {
-              if (optarg[j] <= '0' && optarg[j] >= '9') {
+              if (optarg[j] <= '0' || optarg[j] >= '9') {
                 print_usage();
                 exit(EXIT_FAILURE);
               }
