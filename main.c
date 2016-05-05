@@ -91,12 +91,12 @@ void traverse () {
           print_ls(file_name);
         }
         else {
-        /* check if the -l flag is set if so print in formatted form */
-        if (flags->l) print_formatted (&file_stat);
-        /* if the file name */
-        print_name_with_classification(&file_stat, file_name);
-        printf("\n");
-      }
+          /* check if the -l flag is set if so print in formatted form */
+          if (flags->l) print_formatted (&file_stat);
+          /* if the file name */
+          print_name_with_classification(&file_stat, file_name);
+          printf("\n");
+        }
       }
     }
     file_index++;
@@ -143,7 +143,7 @@ void print_ls(const char *name)
   if (!(file_dir = readdir(dir)))
   return;
 
-  if (flags->r && strcmp(name, "..") && !flags->f){
+  if (flags->r && strcmp(name, "..")){
     printf("%s\n", name);
   }
 
@@ -158,7 +158,7 @@ void print_ls(const char *name)
       return;
     }
 
-    if (flags->r && !flags->f) {
+    if (flags->r) {
       if (file_dir->d_type == DT_DIR && strcmp(file_name, ".") && strcmp(file_name, "..")) {
         // recursive is turned on add all dirs to Dllist
         dll_append(recursive_file_list, new_jval_v(temp_file_name));
@@ -184,7 +184,7 @@ void print_ls(const char *name)
     printf("}\n\n" );
   }
 
-  if (flags->r && !dll_empty(recursive_file_list) && !flags->f) {
+  if (flags->r && !dll_empty(recursive_file_list)) {
     dll_traverse(tmp, recursive_file_list)
     {
       printf("\n");
