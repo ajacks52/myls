@@ -80,7 +80,6 @@ void traverse () {
       lstat(file_name,&file_stat);
       /* check if name is a file or a dir */
       if (!S_ISDIR(file_stat.st_mode)) {
-
         /* not a dir so it must be a file or symlink */
         char *temp_name = get_real_name_if_necessary(&file_stat, file_name);
         if (temp_name != NULL) {
@@ -88,11 +87,16 @@ void traverse () {
           lstat(temp_name,&file_stat);
         }
 
+        if (flags->f && S_ISDIR(file_stat.st_mode)) {
+          print_ls(file_name);
+        }
+        else {
         /* check if the -l flag is set if so print in formatted form */
         if (flags->l) print_formatted (&file_stat);
         /* if the file name */
         print_name_with_classification(&file_stat, file_name);
         printf("\n");
+      }
       }
     }
     file_index++;
@@ -139,7 +143,7 @@ void print_ls(const char *name)
   if (!(file_dir = readdir(dir)))
   return;
 
-  if (flags->r && strcmp(name, "..")){
+  if (flags->r && strcmp(name, "..") && !flags->f){
     printf("%s\n", name);
   }
 
@@ -154,7 +158,7 @@ void print_ls(const char *name)
       return;
     }
 
-    if (flags->r) {
+    if (flags->r && !flags->f) {
       if (file_dir->d_type == DT_DIR && strcmp(file_name, ".") && strcmp(file_name, "..")) {
         // recursive is turned on add all dirs to Dllist
         dll_append(recursive_file_list, new_jval_v(temp_file_name));
@@ -180,7 +184,7 @@ void print_ls(const char *name)
     printf("}\n\n" );
   }
 
-  if (flags->r && !dll_empty(recursive_file_list)) {
+  if (flags->r && !dll_empty(recursive_file_list) && !flags->f) {
     dll_traverse(tmp, recursive_file_list)
     {
       printf("\n");
