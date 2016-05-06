@@ -28,7 +28,6 @@
 #define talloc(ty, sz) (ty *) malloc ((sz) * sizeof(ty))
 
 typedef struct {
-  int times;
   char *file_name;
 } file_name_t;
 
@@ -45,7 +44,7 @@ typedef struct {
 
 int parse_input_opt (int argc, char **argv);
 void print_usage();
-void print_ls(const char *name);
+void ls_dir(const char *name);
 void traverse ();
 void print_name_with_classification (struct stat *file_stat, char *old_name);
 void print_formatted (struct stat *file_stat);

@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
     dll_traverse(tmp, flags->file_names_list) {
       file_name_t *file_name_struct = (file_name_t *) jval_v(dll_val(tmp));
       char *file_name = strdup(file_name_struct->file_name);
-      printf( ANSI_COLOR_RED "%s #%d, " ANSI_COLOR_RESET,file_name, file_name_struct->times );
+      printf( ANSI_COLOR_RED "%s " ANSI_COLOR_RESET,file_name );
     }
     printf("}\n\n" );
   }
@@ -36,15 +36,15 @@ int main(int argc, char **argv) {
     char *file_name = strdup(file_name_struct->file_name);
 
     // delete bad files from list.
-    for (int i = 0; i < file_name_struct->times; i++) {
-      if( access( file_name, F_OK ) == -1 ) {
-        // file doesn't exist
-        fprintf(stderr, "myls: %s: No such file or directory\n", file_name);
-        if (i == 0)
-        dll_delete_node(tmp);
-        LIST_WAS_FULL_OF_CRAP = 1;
-      }
+    // for (int i = 0; i < file_name_struct->times; i++) {
+    if( access( file_name, F_OK ) == -1 ) {
+      // file doesn't exist
+      fprintf(stderr, "myls: %s: No such file or directory\n", file_name);
+      // if (i == 0)
+      dll_delete_node(tmp);
+      LIST_WAS_FULL_OF_CRAP = 1;
     }
+    // }
   }
 
   // if list is empty and we delete at least one bad file exit the program.
@@ -54,7 +54,6 @@ int main(int argc, char **argv) {
 
   // traverse and print ls
   traverse ();
-
   free(flags);
 }
 
@@ -66,71 +65,66 @@ void traverse () {
 
   // list is empty and was not full of crap
   if (dll_empty(flags->file_names_list) && !LIST_WAS_FULL_OF_CRAP) {
-    print_ls(".");
+    ls_dir(".");
   }
 
-  // loop over all the files in the list file_name_struct->times times
+  // loop over all the files in the list
   int file_index = 0;
+
   dll_traverse(tmp, flags->file_names_list) {
     file_name_t *file_name_struct = (file_name_t *) jval_v(dll_val(tmp));
     char *file_name = strdup(file_name_struct->file_name);
 
-    for (int i = 0; i < file_name_struct->times; i++) {
+    /* do an initial stat to get the files info */
+    lstat(file_name,&file_stat);
 
-      lstat(file_name,&file_stat);
-      /* check if name is a file or a dir */
-      if (!S_ISDIR(file_stat.st_mode)) {
-        /* not a dir so it must be a file or symlink */
-        char *temp_name = get_real_name_if_necessary(&file_stat, file_name);
-        if (temp_name != NULL) {
-          file_name = temp_name;
-          lstat(temp_name,&file_stat);
-        }
-
-        if (flags->f && S_ISDIR(file_stat.st_mode)) {
-          print_ls(file_name);
-        }
-        else {
-          /* check if the -l flag is set if so print in formatted form */
-          if (flags->l) print_formatted (&file_stat);
-          /* if the file name */
-          print_name_with_classification(&file_stat, file_name);
-          printf("\n");
-        }
-      }
+    if (S_ISDIR(file_stat.st_mode)) {
+      /* not a dir so it must be a file or symlink */
+      printf("\n");
+      ls_dir(file_name);
     }
-    file_index++;
-  }
+    else if (!S_ISLNK(file_stat.st_mode)) {
+      /* not a symlink or a dir be a file */
+      /* check if the -l flag is set if so print in formatted form */
+      if (flags->l) print_formatted (&file_stat);
+      /* if the file name */
+      print_name_with_classification(&file_stat, file_name);
+    }
+    else {
+      /* must be a symlink  */
 
-  // loop over all the dirs in the list file_name_struct->times times
-  file_index = 0;
-  dll_traverse(tmp, flags->file_names_list) {
-    file_name_t *file_name_struct = (file_name_t *) jval_v(dll_val(tmp));
-    char *file_name = strdup(file_name_struct->file_name);
+      /* get_real_name_if_necessary returns null unless file is a symlink and -f is on */
+      char *temp_name = get_real_name_if_necessary(&file_stat, file_name);
+      if (temp_name != NULL) {
+        file_name = temp_name;
+        /* redo stat because file is symlink */
+        lstat(temp_name,&file_stat);
+      }
 
-    for (int i = 0; i < file_name_struct->times; i++) {
-
-      lstat(file_name,&file_stat);
-      /* check if name is a file or a dir */
       if (S_ISDIR(file_stat.st_mode)) {
-        /* it's a dir so ls it */
-        print_ls(file_name);
+        /* not a dir so it must be a file or symlink */
         printf("\n");
+        ls_dir(file_name);
+      }
+      else {
+        /* not a symlink or a dir be a file */
+        /* check if the -l flag is set if so print in formatted form */
+        if (flags->l) print_formatted (&file_stat);
+        /* if the file name */
+        print_name_with_classification(&file_stat, file_name);
       }
     }
     file_index++;
   }
-
 }
-
 
 /**
 * Prints an entire directory
 * if the -r flag is on it will recurssively print directies from
 * the root of where it was called.
 */
-void print_ls(const char *name)
-{
+void ls_dir(const char *name) {
+
   DIR *dir;
   struct dirent *file_dir;
   struct stat file_stat;
@@ -189,7 +183,7 @@ void print_ls(const char *name)
     {
       printf("\n");
       char *dir_name = strdup((char *) jval_v(dll_val(tmp)));
-      print_ls(dir_name);
+      ls_dir(dir_name);
     }
   }
 }
@@ -243,10 +237,6 @@ void print_formatted (struct stat *file_stat) {
   char fyear[10];
 
   time_t t = time(NULL);
-
-  //TODO fix date issue, I think when I get recurssion to work the date issue will
-  // go away I think that stat only knows about "." the current dir nothing else
-
 
   strftime(cyear, 10, "%Y", localtime(&t));
   strftime(fyear, 10, "%Y", localtime(&(file_stat->st_mtime)));
@@ -364,26 +354,9 @@ int parse_input_opt (int argc, char **argv) {
       }
     }
     else {
-
-      int already_in_list = 0;
-      char *fname = malloc(strlen(argv[optind])+1);
-      strcpy(fname, argv[optind]);
-
-      dll_traverse(tmp, flags->file_names_list) {
-        file_name_t *file_name_struct = (file_name_t *) jval_v(dll_val(tmp));
-        if (!strcmp(argv[optind], file_name_struct->file_name)) {
-          already_in_list = 1;
-          file_name_struct->times++;
-        }
-      }
-
-      if (!already_in_list){
-        file_name_t *file_name_struct = talloc(file_name_t, 1);
-        file_name_struct->times = 1;
-        file_name_struct->file_name = strdup(argv[optind]);
-        dll_append(flags->file_names_list, new_jval_v(file_name_struct));
-      }
-
+      file_name_t *file_name_struct = talloc(file_name_t, 1);
+      file_name_struct->file_name = strdup(argv[optind]);
+      dll_append(flags->file_names_list, new_jval_v(file_name_struct));
       optind++;  // Skip to the next argument
     }
   }
