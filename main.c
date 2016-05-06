@@ -302,7 +302,7 @@ int parse_input_opt (int argc, char **argv) {
   int opt= 0;
   opterr = 0;
 
-  while (optind < argc) {
+  while (optind < argc-1) {
 
     printf("foo: %d, %d\n", optind, argc );
 
