@@ -36,15 +36,12 @@ int main(int argc, char **argv) {
     char *file_name = strdup(file_name_struct->file_name);
 
     // delete bad files from list.
-    // for (int i = 0; i < file_name_struct->times; i++) {
     if( access( file_name, F_OK ) == -1 ) {
       // file doesn't exist
       fprintf(stderr, "myls: %s: No such file or directory\n", file_name);
-      // if (i == 0)
       dll_delete_node(tmp);
       LIST_WAS_FULL_OF_CRAP = 1;
     }
-    // }
   }
 
   // if list is empty and we delete at least one bad file exit the program.
