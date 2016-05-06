@@ -78,8 +78,6 @@ void traverse () {
     /* do an initial stat to get the files info */
     lstat(file_name,&file_stat);
 
-    printf("1\n" );
-
     if (S_ISDIR(file_stat.st_mode)) {
       /* not a dir so it must be a file or symlink */
       printf("\n");

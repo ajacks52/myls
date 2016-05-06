@@ -2,7 +2,7 @@ EXECUTABLES = myls
 
 CC = gcc
 LIBS = libfdr.a
-CFLAGS = -O2 -w -std=gnu99
+CFLAGS = -O0 -g -w -std=gnu99
 
 LIBFDROBJS = dllist.o jval.o
 
