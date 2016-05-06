@@ -66,7 +66,7 @@ void traverse () {
   }
 
   // loop over all the files in the list
-  int file_index = 0;
+  // int file_index = 0;
 
   dll_traverse(tmp, flags->file_names_list) {
     file_name_t *file_name_struct = (file_name_t *) jval_v(dll_val(tmp));
@@ -111,7 +111,7 @@ void traverse () {
         print_name_with_classification(&file_stat, file_name);
       }
     }
-    file_index++;
+    // file_index++;
   }
 }
 
@@ -286,81 +286,84 @@ int parse_input_opt (int argc, char **argv) {
   flags->r = 0;
   flags->file_names_list = new_dllist();
 
-  //Specifying the expected options
-  static struct option long_options[] = {
-    {"classify",        no_argument,   0,  'c' },
-    {"disk-usage",      required_argument,   0,  'd' },
-    {"long-listing",    no_argument,   0,  'l' },
-    {"follow-symlinks", no_argument,   0,  'f' },
-    {"human-readable",  no_argument,   0,  'h' },
-    {"recursive",       no_argument,   0,  'r' },
-    {0,                 0,             0,  0   }
-  };
+  int c;
+  while (1)
+  {
+    static struct option long_options[] = {
+      {"classify",        no_argument,   0,  'c' },
+      {"disk-usage",      required_argument,   0,  'd' },
+      {"long-listing",    no_argument,   0,  'l' },
+      {"follow-symlinks", no_argument,   0,  'f' },
+      {"human-readable",  no_argument,   0,  'h' },
+      {"recursive",       no_argument,   0,  'r' },
+      {0,                 0,             0,  0   }
+    };
+    /* getopt_long stores the option index here. */
+    int option_index = 0;
 
-  Dllist tmp;
-  int long_index =0;
-  int opt= 0;
-  opterr = 0;
+    c = getopt_long (argc, argv, "cd:lfhr",
+    long_options, &option_index);
 
-  while (optind < argc-1) {
+    /* Detect the end of the options. */
+    if (c == -1)
+    break;
 
-    printf("foo: %d, %d\n", optind, argc );
+    switch (c){
+      case 'c' :{
+        flags->c = 1;
+        break;
+      }
+      case 'd' :{
 
-
-    if ((opt = getopt_long(argc, argv, "cd:lfhr", long_options, &long_index )) != -1) {
-      switch (opt) {
-        case 'c' :{
-          flags->c = 1;
-          break;
-        }
-        case 'd' :{
-
-          if (optarg) {
-            int j = 0;
-            while (j < strlen(optarg)) {
-              if (optarg[j] <= '0' || optarg[j] >= '9') {
-                print_usage();
-                exit(EXIT_FAILURE);
-              }
-              j++;
+        if (optarg) {
+          int j = 0;
+          while (j < strlen(optarg)) {
+            if (optarg[j] <= '0' || optarg[j] >= '9') {
+              print_usage();
+              exit(EXIT_FAILURE);
             }
+            j++;
           }
+        }
 
-          flags->d = 1;
-          flags->d_arg = atoi(optarg);
-          break;
-        }
-        case 'l' :{
-          flags->l = 1;
-          break;
-        }
-        case 'f' :{
-          flags->f = 1;
-          break;
-        }
-        case 'h' :{
-          flags->h = 1;
-          break;
-        }
-        case 'r' :{
-          flags->r = 1;
-          break;
-        }
-        case '?': {
-          print_usage();
-          exit(EXIT_FAILURE);
-          break;
-        }
+        flags->d = 1;
+        flags->d_arg = atoi(optarg);
+        break;
+      }
+      case 'l' :{
+        flags->l = 1;
+        break;
+      }
+      case 'f' :{
+        flags->f = 1;
+        break;
+      }
+      case 'h' :{
+        flags->h = 1;
+        break;
+      }
+      case 'r' :{
+        flags->r = 1;
+        break;
+      }
+      case '?': {
+        print_usage();
+        exit(EXIT_FAILURE);
+        break;
       }
     }
-    else {
+  }
+
+  /* any remaining command line arguments (not options). */
+  if (optind < argc)
+  {
+    while (optind < argc) {
       file_name_t *file_name_struct = talloc(file_name_t, 1);
       file_name_struct->file_name = strdup(argv[optind]);
       dll_append(flags->file_names_list, new_jval_v(file_name_struct));
       optind++;  // Skip to the next argument
     }
   }
-
   return 0;
 }
 
