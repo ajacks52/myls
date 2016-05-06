@@ -304,6 +304,9 @@ int parse_input_opt (int argc, char **argv) {
 
   while (optind < argc) {
 
+    printf("foo: %d, %d\n", optind, argc );
+
+
     if ((opt = getopt_long(argc, argv, "cd:lfhr", long_options, &long_index )) != -1) {
       switch (opt) {
         case 'c' :{
