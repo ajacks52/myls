@@ -30,19 +30,20 @@ int main(int argc, char **argv) {
     printf("}\n\n" );
   }
 
-  // scrub files make sure they all exist.
-  dll_traverse(tmp, flags->file_names_list) {
-    file_name_t *file_name_struct = (file_name_t *) jval_v(dll_val(tmp));
-    char *file_name = strdup(file_name_struct->file_name);
 
-    // delete bad files from list.
-    if( access( file_name, F_OK ) == -1 ) {
-      // file doesn't exist
-      fprintf(stderr, "myls: %s: No such file or directory\n", file_name);
-      dll_delete_node(tmp);
-      LIST_WAS_FULL_OF_CRAP = 1;
-    }
-  }
+  // scrub files make sure they all exist.
+  // dll_traverse(tmp, flags->file_names_list) {
+  //   file_name_t *file_name_struct = (file_name_t *) jval_v(dll_val(tmp));
+  //   char *file_name = strdup(file_name_struct->file_name);
+  //
+  //   // delete bad files from list.
+  //   if( access( file_name, F_OK ) == -1 ) {
+  //     // file doesn't exist
+  //     fprintf(stderr, "myls: %s: No such file or directory\n", file_name);
+  //     dll_delete_node(tmp);
+  //     LIST_WAS_FULL_OF_CRAP = 1;
+  //   }
+  // }
 
   // if list is empty and we delete at least one bad file exit the program.
   if (dll_empty(flags->file_names_list) && LIST_WAS_FULL_OF_CRAP) {
@@ -74,6 +75,7 @@ void traverse () {
 
     /* do an initial stat to get the files info */
     lstat(file_name,&file_stat);
+
 
     if (S_ISDIR(file_stat.st_mode)) {
       /* not a dir so it must be a file or symlink */
@@ -212,15 +214,11 @@ void print_name_with_classification (struct stat *file_stat, char *old_name) {
 char * get_real_name_if_necessary (struct stat *file_stat, char *name) {
   if (flags->f && S_ISLNK(file_stat->st_mode)) {
 
-    printf("BALLS1\n");
-
     char buf[1024];
     int len;
     if ((len = readlink(name, buf, sizeof(buf))) != -1)
     buf[len] = '\0';
     name = strdup(buf);
-
-    printf("BALLS2\n");
 
     return name;
 
