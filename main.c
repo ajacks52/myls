@@ -6,7 +6,7 @@
 
 #include "header.h"
 
-bool DEBUG = false;
+bool DEBUG = true;
 flags_t *flags;
 
 int LIST_WAS_FULL_OF_CRAP = 0;
@@ -211,12 +211,19 @@ void print_name_with_classification (struct stat *file_stat, char *old_name) {
 
 char * get_real_name_if_necessary (struct stat *file_stat, char *name) {
   if (flags->f && S_ISLNK(file_stat->st_mode)) {
+
+    printf("BALLS1\n");
+
     char buf[1024];
     int len;
     if ((len = readlink(name, buf, sizeof(buf))) != -1)
     buf[len] = '\0';
     name = strdup(buf);
+
+    printf("BALLS2\n");
+
     return name;
+
   }
   return NULL;
 }
