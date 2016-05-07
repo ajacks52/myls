@@ -314,20 +314,12 @@ int parse_input_opt (int argc, char **argv) {
         break;
       }
       case 'd' :{
-
-        if (optarg) {
-          int j = 0;
-          while (j < strlen(optarg)) {
-            if (optarg[j] <= '0' || optarg[j] >= '9') {
-              print_usage();
-              exit(EXIT_FAILURE);
-            }
-            j++;
-          }
-        }
-
         flags->d = 1;
         flags->d_arg = atoi(optarg);
+        if (flags->d_arg == 0) {
+          print_usage();
+          exit(EXIT_FAILURE);
+        }
         break;
       }
       case 'l' :{
